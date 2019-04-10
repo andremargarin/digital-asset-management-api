@@ -1,0 +1,27 @@
+version: '3.7'
+
+volumes:
+  postgres_data:
+
+services:
+  django:
+    build:
+      context: .
+      dockerfile: ./compose/local/django/Dockerfile
+    depends_on:
+      - postgres
+    env_file:
+      - ./.envs/.local/.postgres
+    volumes:
+      - .:/app
+    ports:
+      - "8000:8000"
+    command: python manage.py runserver 0.0.0.0:8000
+  postgres:
+    image: postgres:11.2
+    env_file:
+      - ./.envs/.local/.postgres
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
