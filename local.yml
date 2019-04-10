@@ -2,6 +2,8 @@ version: '3.7'
 
 volumes:
   postgres_data:
+  static_data:
+  media_data:
 
 services:
   django:
@@ -14,9 +16,11 @@ services:
       - ./.envs/.local/.postgres
     volumes:
       - .:/app
+      - static_data:/app/static
+      - media_data:/app/media
     ports:
-      - "8000:8000"
-    command: python manage.py runserver 0.0.0.0:8000
+      - "8001:8001"
+    command: gunicorn digital_asset_management_api.wsgi:application --bind 0.0.0.0:8001 --workers 3
   postgres:
     image: postgres:11.2
     env_file:
@@ -25,3 +29,14 @@ services:
       - postgres_data:/var/lib/postgresql/data
     ports:
       - "5432:5432"
+  nginx:
+    build:
+      context: .
+      dockerfile: ./compose/local/nginx/Dockerfile
+    ports:
+      - "80:8000"
+    volumes:
+      - static_data:/app/static
+      - media_data:/app/media
+    depends_on:
+      - django
