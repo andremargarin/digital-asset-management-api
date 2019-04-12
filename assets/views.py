@@ -1,26 +1,25 @@
-from rest_framework import views
-from rest_framework import generics
+from rest_framework import generics, views, status
 from rest_framework.response import Response
-from rest_framework.parsers import FileUploadParser
+from rest_framework.parsers import MultiPartParser
 from .models import File, FilePart
 from .serializers import FileSerializer, FilePartSerializer
 
 
-class FileUploadView(views.APIView):
-    parser_classes = (FileUploadParser,)
+class FileUploadView(generics.CreateAPIView):
+    parser_classes = (MultiPartParser,)
+    serializer_class = FileSerializer
 
-    def post(self, request):
-        file_obj = request.data['file']
-        filename = file_obj.name
-        user = request.user
-        file = File(
-            owner=user,
-            name=filename,
-            content=file_obj
-        )
-        file.save()
-
-        return Response(status=204)
+    def create(self, request, *args, **kwargs):
+        data = {
+            'owner': request.user.id,
+            'content': request.data.get('file', None)
+        }
+        serializer = self.get_serializer(data=data)
+        serializer.is_valid(raise_exception=True)
+        instance = serializer.save()
+        response_data = self.get_serializer(instance=instance)
+        headers = self.get_success_headers(response_data.data)
+        return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
 
 
 class FileListView(generics.ListAPIView):
