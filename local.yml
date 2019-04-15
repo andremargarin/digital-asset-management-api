@@ -13,6 +13,7 @@ services:
     depends_on:
       - postgres
     env_file:
+      - ./.envs/.local/.django
       - ./.envs/.local/.postgres
     volumes:
       - .:/app
@@ -21,12 +22,10 @@ services:
     ports:
       - "8001:8001"
     command: python manage.py runserver 0.0.0.0:8001
-    # command: gunicorn digital_asset_management_api.wsgi:application --bind 0.0.0.0:8001 --workers 3
-    # stdin_open: true
-    # tty: true
   postgres:
     image: postgres:11.2
     env_file:
+      - ./.envs/.local/.django
       - ./.envs/.local/.postgres
     volumes:
       - postgres_data:/var/lib/postgresql/data

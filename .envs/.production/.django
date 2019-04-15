@@ -1,0 +1,6 @@
+DJANGO_SETTINGS_MODULE=digital_asset_management_api.settings.production
+USE_S3=TRUE
+AWS_ACCESS_KEY_ID=6VN7GPPXZWGYAQSRPBZT
+AWS_SECRET_ACCESS_KEY=e1DX5BQ3TTRczEmD0/lNrTxrNL4AxbHAHCj/vtHFhGU
+AWS_STORAGE_BUCKET_NAME=digital-asset-management
+AWS_S3_ENDPOINT_URL=sfo2.digitaloceanspaces.com
