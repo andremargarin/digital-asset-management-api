@@ -1,10 +1,7 @@
-from django.urls import path
 from assets import views
+from rest_framework.routers import DefaultRouter
 
 
-urlpatterns = [
-    path('upload/', views.FileUploadView.as_view(), name='asset_create'),
-    path('list/', views.FileListView.as_view(), name='asset_list'),
-    path('delete/<int:pk>/', views.FileDestroyView.as_view(), name='asset_delete'),
-    path('detail/<int:pk>/', views.FileRetrieveView.as_view(), name='asset_detail'),
-]
+router = DefaultRouter()
+router.register(r'asset-file', views.AssetFileViewSet, basename='assets')
+urlpatterns = router.urls

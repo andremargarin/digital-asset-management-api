@@ -5,28 +5,17 @@ from django.conf import settings
 from django.core.files import File as DjangoFile
 from moviepy.tools import extensions_dict
 from moviepy.editor import VideoFileClip, AudioFileClip
-from .models import File, FilePart
+from .models import AssetFile, AssetFilePart
 
 
-def get_filename_and_extension(filename):
-    """
-    TODO: refatorar
-    os.path.basename(remix).rsplit('.')[0]
-    """
-    name = filename[:filename.rfind('.')]
-    extension = filename[filename.rfind('.')+1:]
-    return name, extension
-
-
-
-def generate_time_frames(clip_duration, max_frame_size):
-    if (clip_duration % max_frame_size == 0):
-        nparts = int(clip_duration / max_frame_size)
+def generate_time_frames(clip_duration, frame_size):
+    if (clip_duration % frame_size == 0):
+        nparts = int(clip_duration / frame_size)
     else:
-        nparts = int(clip_duration / max_frame_size) + 1
+        nparts = int(clip_duration / frame_size) + 1
 
     breakpoints = [
-        i * max_frame_size if i * max_frame_size < clip_duration else clip_duration
+        i * frame_size if i * frame_size < clip_duration else clip_duration
         for i in range(0, nparts + 1)
     ]
 
@@ -38,37 +27,46 @@ def generate_time_frames(clip_duration, max_frame_size):
     return time_frames
 
 
-def save_temp_file(file):
-    tempfile_path = '/tmp/' + file.name
-    with open(tempfile_path, 'wb+') as destination:
-        for chunk in file.chunks():
-            destination.write(chunk)
-    return tempfile_path
+def save_file_and_audio_tracks(owner, content):
+    filename = content.name[:content.name.rfind('.')]
+    extension = content.name[content.name.rfind('.')+1:]
 
-def save_audio_tracks(file):
+    content_tempfile_path = '{temp_dir}{filename}.{extension}'.format(
+        temp_dir=settings.FILE_UPLOAD_TEMP_DIR,
+        filename=filename,
+        extension=extension)
 
-    content = file.content.instance
-    filename, extension = get_filename_and_extension(content.name)
+    with open(content_tempfile_path, 'wb+') as destination:
+        destination.write(content.read())
+
     clip_type = extensions_dict[extension]['type']
-
     if clip_type == 'video':
-        audio = VideoFileClip(file.content.path).audio
+        audio = VideoFileClip(content_tempfile_path).audio
     elif clip_type == 'audio':
-        audio =  AudioFileClip(file.content.path)
+        audio = AudioFileClip(content_tempfile_path)
 
-    audio_clip_time_frames = generate_time_frames(audio.duration, 50)
+    asset_file = AssetFile(owner=owner, content=content, name=content.name)
+    asset_file.save()
 
-    for part_number, frame in enumerate(audio_clip_time_frames, start=1):
+    time_frames = generate_time_frames(
+        clip_duration=audio.duration,
+        frame_size=settings.ASSETS_ASSET_FILE_PART_SIZE)
 
+    for part_number, frame in enumerate(time_frames, start=1):
         audio_clip_part = audio.subclip(*frame)
 
-        file_part_name = '{filename}_{part_number}.{extension}'.format(
+        audio_path = '{temp_dir}{filename}_{part_number}.{extension}'.format(
+            temp_dir=settings.FILE_UPLOAD_TEMP_DIR,
             filename=filename,
             part_number=part_number,
-            extension='mp3'
-        )
+            extension='mp3')
 
-        audio_clip_part.write_audiofile(settings.MEDIA_ROOT + file_part_name)
+        audio_clip_part.write_audiofile(audio_path)
 
-        file_part = FilePart(file=file, order=part_number, content=file_part_name)
-        file_part.save()
+        with open(audio_path, 'rb') as audio_file:
+            file_content = DjangoFile(audio_file)
+            file_part = AssetFilePart(asset_file=asset_file, order=part_number)
+            file_part.content.save(audio_path, file_content)
+            file_part.save()
+
+    return asset_file

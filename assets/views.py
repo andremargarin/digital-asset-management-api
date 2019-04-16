@@ -1,13 +1,13 @@
-from rest_framework import generics, views, status
+from rest_framework import viewsets, status
 from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser
-from .models import File, FilePart
-from .serializers import FileSerializer, FilePartSerializer
+from .models import AssetFile
+from .serializers import AssetFileSerializer
 
 
-class FileUploadView(generics.CreateAPIView):
+class AssetFileViewSet(viewsets.ModelViewSet):
     parser_classes = (MultiPartParser,)
-    serializer_class = FileSerializer
+    serializer_class = AssetFileSerializer
 
     def create(self, request, *args, **kwargs):
         data = {
@@ -19,19 +19,13 @@ class FileUploadView(generics.CreateAPIView):
         instance = serializer.save()
         response_data = self.get_serializer(instance=instance)
         headers = self.get_success_headers(response_data.data)
-        return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+        return Response(response_data.data,
+                        status=status.HTTP_201_CREATED,
+                        headers=headers)
 
-
-class FileListView(generics.ListAPIView):
-    queryset = File.objects.all()
-    serializer_class = FileSerializer
-
-
-class FileRetrieveView(generics.RetrieveAPIView):
-    queryset = File.objects.all()
-    serializer_class = FileSerializer
-
-
-class FileDestroyView(generics.DestroyAPIView):
-    queryset = File.objects.all()
-    serializer_class = FileSerializer
+    def get_queryset(self):
+        queryset = AssetFile.objects.filter(owner=self.request.user)
+        name = self.request.query_params.get('name', None)
+        if name is not None:
+            queryset = queryset.filter(name__icontains=name)
+        return queryset

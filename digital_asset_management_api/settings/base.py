@@ -143,8 +143,9 @@ else:
     MEDIA_ROOT = '/app/media/'
 
 
-# File upload
+# File upload settings
 
+FILE_UPLOAD_TEMP_DIR = '/tmp/'
 FILE_UPLOAD_PERMISSIONS = 0o644
 
 
@@ -167,3 +168,8 @@ SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(days=1),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
 }
+
+# Assets app settings
+
+# Max part size in seconds (Default: 10 m)
+ASSETS_ASSET_FILE_PART_SIZE = 10 * 60
